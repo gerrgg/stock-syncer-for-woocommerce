@@ -1,0 +1,27 @@
+{
+  "name": "stock-syncer-for-woocommerce",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gerrgg/stock-syncer-for-woocommerce.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gerrgg/stock-syncer-for-woocommerce/issues"
+  },
+  "homepage": "https://github.com/gerrgg/stock-syncer-for-woocommerce#readme",
+  "dependencies": {
+    "@prettier/plugin-php": "prettier/prettier-php",
+    "prettier": "^2.2.1"
+  }
+}
