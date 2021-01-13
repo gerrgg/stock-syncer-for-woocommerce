@@ -39,7 +39,7 @@ if (
    * Schedual portwest and helly hansen sync twice daily.
    */
   add_action("ssfwc_portwest_sync_hook", "ssfwc_portwest_sync_exec");
-  add_action("ssfwchelly_hansent_sync_hook", "ssfwc_helly_hansen_sync_exec");
+  add_action("ssfwc_helly_hansen_sync_hook", "ssfwc_helly_hansen_sync_exec");
 
   if (!wp_next_scheduled("ssfwc_portwest_sync_hook")) {
     wp_schedule_event(time(), "twicedaily", "ssfwc_portwest_sync_hook");
