@@ -28,12 +28,12 @@ class StockSyncerTest extends WP_UnitTestCase
     $config = ["token" => $_ENV["API_KEY"]];
 
     // set globals
-    $GLOBALS["sync"] = new StockSyncer($url, $config);
+    $GLOBALS["sync"] = new StockSyncer($url, 1, 2, $config);
     $GLOBALS["helper"] = new TestHelper();
 
     global $helper;
 
-    $helper->create_product([
+    $GLOBALS["product_id"] = $helper->create_product([
       "post_title" => "Test regex",
       "post_content" => "somestuff",
       "post_type" => "post",
@@ -77,39 +77,46 @@ class StockSyncerTest extends WP_UnitTestCase
     $this->assertNotEmpty($sync->csv);
   }
 
-  public function test_sync_access_csv_cells()
-  {
-    global $sync;
-
-    $this->assertEquals($sync->get_cell(2, 2), 15);
-  }
-
   public function test_sync_returns_product_data_by_sku()
   {
     global $sync;
 
-    // made product with sku 70030_200-2XL in setup
-    $product_data = $sync->get_product_id_and_stock_by_sku("70030_200-2XL");
+    global $product_id;
 
-    $this->assertEquals($product_data["id"], 9);
-    $this->assertEquals($product_data["stock"], 50);
+    $productStock = get_post_meta($product_id, "_stock", true);
+
+    $this->assertEquals($productStock, 50);
   }
 
   public function test_sync_updates_stock()
   {
     global $sync;
 
-    // made product with sku 70030_200-2XL in setup
-    $product = $sync->get_product_id_and_stock_by_sku("70030_200-2XL");
+    global $product_id;
 
-    $sync->update_stock($product["id"], 1000);
+    $productStockBefore = get_post_meta($product_id, "_stock", true);
 
-    $stock_after_update = get_post_meta($product["id"], "_stock", true);
+    $sync->update_stock($product_id, $productStockBefore + 1);
 
-    $this->assertNotEquals($product["stock"], $new_stock);
+    $productStockAfter = get_post_meta($product_id, "_stock", true);
 
-    $this->assertEquals($stock_after_update, 1000);
+    $this->assertNotEquals($productStockBefore, $productStockAfter);
+
+    $this->assertEquals($productStockAfter, $productStockBefore + 1);
   }
 
-  // loop test db and see if stock changes
+  public function test_sync_updates_stock_in_loop_using_csv()
+  {
+    global $sync;
+
+    global $product_id;
+
+    $productStockBefore = get_post_meta($product_id, "_stock", true);
+
+    $sync->start_sync();
+
+    $productStockAfter = get_post_meta($product_id, "_stock", true);
+
+    $this->assertNotEquals($productStockBefore, $productStockAfter);
+  }
 }

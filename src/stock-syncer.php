@@ -6,6 +6,8 @@ class StockSyncer
 {
   // get URL from params
   private $url;
+  private $sku_column;
+  private $stock_column;
 
   // setup config object
   private $config = [
@@ -19,11 +21,15 @@ class StockSyncer
 
   /**
    * @param string $url
+   * @param int $sku_column
+   * @param int $stock_column
    * @param array $config [token]
    */
-  function __construct($url, $config = false)
+  function __construct($url, $sku_column, $stock_column, $config = false)
   {
     $this->url = $url;
+    $this->sku_column = $sku_column;
+    $this->stock_column = $stock_column;
 
     if ($config) {
       $this->config = $config;
@@ -35,7 +41,24 @@ class StockSyncer
     // set csv file
     $this->set_CSV();
 
-    // loop/sync
+    // start_sync
+  }
+
+  public function start_sync()
+  {
+    $row_count = $this->csv->getHighestRow();
+
+    for ($i = 2; $i <= $row_count; $i++) {
+      $data = $this->get_sku_and_stock_from_csv($i);
+
+      if ($data["sku"]) {
+        $id = $this->get_product_id_from_sku($data["sku"]);
+
+        if (false !== $data) {
+          $this->update_stock($id, $data["stock"]);
+        }
+      }
+    }
   }
 
   /**
@@ -75,27 +98,17 @@ class StockSyncer
    * @param int $y - the column number of the cell
    * @return string|int
    */
-  public function get_cell($x, $y)
+  public function get_sku_and_stock_from_csv($row)
   {
-    return $this->csv->getCellByColumnAndRow($y, $x)->getValue();
-  }
+    return [
+      "sku" => $this->csv
+        ->getCellByColumnAndRow($this->sku_column, $row)
+        ->getValue(),
 
-  /**
-   * Sets the column number of where SKUS are located in the spreadsheet
-   * @param int $column
-   */
-  public function set_sku_column($column)
-  {
-    $this->sku_column = $column;
-  }
-
-  /**
-   * Sets the column number of where STOCK is located in the spreadsheet
-   * @param int $column
-   */
-  public function set_stock_column($column)
-  {
-    $this->stock_column = $column;
+      "stock" => $this->csv
+        ->getCellByColumnAndRow($this->stock_column, $row)
+        ->getValue(),
+    ];
   }
 
   /**
@@ -136,21 +149,12 @@ class StockSyncer
   }
 
   /**
-   * Returns total number of rows in spreadsheet
-   * @return int
-   */
-  public function get_row_count()
-  {
-    return $this->csv->getHighestRow();
-  }
-
-  /**
    * Returns product data if sku is found in database
    * @param string $sku
    * @param int $product_id
    */
 
-  public function get_product_id_and_stock_by_sku($sku = false)
+  public function get_product_id_from_sku($sku = false)
   {
     if (!$sku) {
       return null;
@@ -165,16 +169,7 @@ class StockSyncer
       )
     );
 
-    if ($product_id) {
-      $data = [
-        "id" => $product_id,
-        "stock" => get_post_meta($product_id, "_stock", true),
-      ];
-
-      return $data;
-    }
-
-    return false;
+    return $product_id ? $product_id : false;
   }
 
   public function update_stock($id = false, $stock = false)
