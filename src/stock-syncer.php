@@ -1,7 +1,5 @@
 <?php
 
-require_once "vendor/autoload.php";
-
 class StockSyncer
 {
   // get URL from params

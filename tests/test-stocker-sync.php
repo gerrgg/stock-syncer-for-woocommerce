@@ -120,7 +120,7 @@ class StockSyncerTest extends WP_UnitTestCase
     $this->assertNotEquals($productStockBefore, $productStockAfter);
   }
 
-  public function test_sync_works_with_portwest_as_well()
+  public function test_sync_works_with_portwest_in_production()
   {
     putenv("WP_ENVIRONMENT_TYPE=production");
 
@@ -142,6 +142,36 @@ class StockSyncerTest extends WP_UnitTestCase
 
     // get stock from csv file
     $data = $sync->get_sku_and_stock_from_csv(2);
+
+    $sync->start_sync();
+
+    $stockAfterSync = get_post_meta($product_id, "_stock", true);
+
+    $this->assertEquals($data["stock"], $stockAfterSync);
+  }
+
+  public function test_sync_works_with_helly_hansen_in_production()
+  {
+    putenv("WP_ENVIRONMENT_TYPE=production");
+
+    global $helper;
+
+    global $sync;
+
+    $product_id = $helper->create_product([
+      "post_title" => "Helly Hansen product",
+      "post_content" => "somestuff",
+      "post_type" => "product",
+      "meta_input" => [
+        "_sku" => "70030_200-S",
+        "_stock" => 900,
+      ],
+    ]);
+
+    // get stock from csv file
+    $data = $sync->get_sku_and_stock_from_csv(3);
+
+    $this->assertEquals($data["sku"], "70030_200-S");
 
     $sync->start_sync();
 
