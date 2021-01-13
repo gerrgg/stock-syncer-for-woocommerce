@@ -25,7 +25,7 @@ class StockSyncerTest extends WP_UnitTestCase
 
     // setup url
     $url = $_ENV["API_URL"] . date("Y-m-d");
-    $config = ["token" => $_ENV["API_KEY"]];
+    $config = ["token" => $_ENV["API_KEY"], "file_type" => "xlsx"];
 
     // set globals
     $GLOBALS["sync"] = new StockSyncer($url, 1, 2, $config);
@@ -36,7 +36,7 @@ class StockSyncerTest extends WP_UnitTestCase
     $GLOBALS["product_id"] = $helper->create_product([
       "post_title" => "Test regex",
       "post_content" => "somestuff",
-      "post_type" => "post",
+      "post_type" => "product",
       "meta_input" => ["_sku" => "70030_200-2XL", "_stock" => 50],
     ]);
   }
@@ -118,5 +118,35 @@ class StockSyncerTest extends WP_UnitTestCase
     $productStockAfter = get_post_meta($product_id, "_stock", true);
 
     $this->assertNotEquals($productStockBefore, $productStockAfter);
+  }
+
+  public function test_sync_works_with_portwest_as_well()
+  {
+    putenv("WP_ENVIRONMENT_TYPE=production");
+
+    global $helper;
+
+    $product_id = $helper->create_product([
+      "post_title" => "Portwest product",
+      "post_content" => "somestuff",
+      "post_type" => "product",
+      "meta_input" => [
+        "_sku" => "2886CGR30",
+        "_stock" => 900,
+      ],
+    ]);
+
+    $url = "http://asm.portwest.us/downloads/sohUS.csv";
+
+    $sync = new StockSyncer($url, 2, 9, ["file_type" => "csv"]);
+
+    // get stock from csv file
+    $data = $sync->get_sku_and_stock_from_csv(2);
+
+    $sync->start_sync();
+
+    $stockAfterSync = get_post_meta($product_id, "_stock", true);
+
+    $this->assertEquals($data["stock"], $stockAfterSync);
   }
 }

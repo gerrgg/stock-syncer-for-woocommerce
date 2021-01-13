@@ -12,6 +12,7 @@ class StockSyncer
   // setup config object
   private $config = [
     "token" => null,
+    "file_type" => "xlsx",
   ];
 
   // spreadsheet recieved via curl and saved locally for access
@@ -86,8 +87,8 @@ class StockSyncer
   {
     $this->csv_location =
       "local" === getenv("WP_ENVIRONMENT_TYPE")
-        ? __DIR__ . "/../tests/test-data.xlsx"
-        : __DIR__ . "/../data.xlsx";
+        ? __DIR__ . "/../tests/test-data." . $this->config["file_type"]
+        : __DIR__ . "/../data." . $this->config["file_type"];
 
     return $this->csv_location;
   }
