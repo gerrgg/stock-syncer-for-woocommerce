@@ -68,7 +68,7 @@ class StockSyncer
   {
     if ($this->data_is_old()) {
       $file = $this->get_remote_file();
-      $this->save_to_file($xlsx);
+      $this->save_to_file($file);
     }
 
     $csv = \PhpOffice\PhpSpreadsheet\IOFactory::load($this->csv_location);
@@ -128,7 +128,7 @@ class StockSyncer
 
     curl_setopt($curl, CURLOPT_URL, $this->url);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($curl, CURLOPT_COOKIE, $this->token);
+    curl_setopt($curl, CURLOPT_COOKIE, $this->config["token"]);
 
     $result = curl_exec($curl);
     curl_close($curl);
