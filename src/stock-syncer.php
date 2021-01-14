@@ -128,7 +128,9 @@ class StockSyncer
 
     curl_setopt($curl, CURLOPT_URL, $this->url);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($curl, CURLOPT_COOKIE, $this->config["token"]);
+    if (isset($this->config["token"])) {
+      curl_setopt($curl, CURLOPT_COOKIE, $this->config["token"]);
+    }
 
     $result = curl_exec($curl);
     curl_close($curl);
