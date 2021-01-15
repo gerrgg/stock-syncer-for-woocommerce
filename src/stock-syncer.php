@@ -7,15 +7,22 @@ class StockSyncer
   private $sku_column;
   private $stock_column;
 
-  // setup config object
-  private $config = [
+  private $log;
+
+  // Set defaults
+  private $defaults = [
     "token" => null,
     "file_type" => "xlsx",
+    "log" => false,
   ];
+
+  // Populate config with passed config array and fill in missing details with defaults
+  private $config = [];
 
   // spreadsheet recieved via curl and saved locally for access
   public $csv = null;
 
+  // the file location of the spreadsheet used for creating/reading and writing files
   private $csv_location = false;
 
   /**
@@ -24,14 +31,17 @@ class StockSyncer
    * @param int $stock_column
    * @param array $config [token]
    */
-  function __construct($url, $sku_column, $stock_column, $config = false)
+  function __construct($url, $sku_column, $stock_column, $config = [])
   {
     $this->url = $url;
     $this->sku_column = $sku_column;
     $this->stock_column = $stock_column;
 
-    if ($config) {
-      $this->config = $config;
+    // configure options and fill in missing details with defaults
+    $this->configure($config);
+
+    if ($this->config["log"]) {
+      $this->log = $this->read_log();
     }
 
     // sets where the datafile is we want to use based on environment variable
@@ -39,8 +49,19 @@ class StockSyncer
 
     // set csv file
     $this->set_CSV();
+  }
 
-    // start_sync
+  /**
+   * Setups the default configuration so every detail doesnt need to be defined.
+   * @param array $config
+   */
+  private function configure($config)
+  {
+    foreach ($this->defaults as $k => $v) {
+      $this->config[$k] = isset($config[$k])
+        ? $config[$k]
+        : $this->defaults[$k];
+    }
   }
 
   public function start_sync()
@@ -54,9 +75,13 @@ class StockSyncer
         $id = $this->get_product_id_from_sku($data["sku"]);
 
         if (false !== $data) {
-          $this->update_stock($id, $data["stock"]);
+          $this->update_stock($id, $data["stock"], $data["sku"]);
         }
       }
+    }
+
+    if ($this->config["log"]) {
+      $this->write_to_log_file();
     }
   }
 
@@ -116,7 +141,14 @@ class StockSyncer
    */
   public function data_is_old()
   {
-    return time() - filemtime($this->csv_location) > 60 * 60 * 24;
+    // Prevents test data from being overwritten.
+    if ("local" === getenv("WP_ENVIRONMENT_TYPE")) {
+      return false;
+    }
+
+    if (file_exists($this->csv_location)) {
+      return time() - filemtime($this->csv_location) > 60 * 60 * 24;
+    }
   }
 
   /**
@@ -128,6 +160,7 @@ class StockSyncer
 
     curl_setopt($curl, CURLOPT_URL, $this->url);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+
     if (isset($this->config["token"])) {
       curl_setopt($curl, CURLOPT_COOKIE, $this->config["token"]);
     }
@@ -173,10 +206,14 @@ class StockSyncer
     return $product_id ? $product_id : false;
   }
 
-  public function update_stock($id = false, $stock = false)
+  public function update_stock($id = false, $stock, $sku = "")
   {
     if (false === $id) {
       return;
+    }
+
+    if ($this->config["log"]) {
+      $this->log .= sprintf(" - %s stock updated to %s\n", $sku, $stock);
     }
 
     // set to manage stock
@@ -191,5 +228,41 @@ class StockSyncer
       "_stock_status",
       $stock > 0 ? "instock" : "outofstock"
     );
+  }
+
+  public function read_log()
+  {
+    $path = dirname(__DIR__) . "/logs/" . date("Ymd") . ".txt";
+
+    if (!file_exists($path)) {
+      touch($path);
+      $fp = fopen($path, "w");
+      fwrite($fp, "Start logging: \n\n");
+      fclose($fp);
+    }
+
+    $file = fopen($path, "r");
+
+    $text = fread($file, filesize($path));
+
+    fclose($file);
+
+    return $text;
+  }
+
+  public function write_to_log_file()
+  {
+    $path = dirname(__DIR__) . "/logs/" . date("Ymd") . ".txt";
+
+    $file = fopen($path, "w");
+    $todays_log = $this->get_log();
+
+    fwrite($file, $todays_log);
+    fclose($file);
+  }
+
+  public function get_log()
+  {
+    return "\n" . $this->log . "\n";
   }
 }

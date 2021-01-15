@@ -25,7 +25,7 @@ class StockSyncerTest extends WP_UnitTestCase
 
     // setup url
     $url = $_ENV["API_URL"] . date("Y-m-d");
-    $config = ["token" => $_ENV["API_KEY"], "file_type" => "xlsx"];
+    $config = ["token" => $_ENV["API_KEY"]];
 
     // set globals
     $GLOBALS["sync"] = new StockSyncer($url, 1, 2, $config);
@@ -39,6 +39,19 @@ class StockSyncerTest extends WP_UnitTestCase
       "post_type" => "product",
       "meta_input" => ["_sku" => "70030_200-2XL", "_stock" => 50],
     ]);
+  }
+
+  public function test_sync_logs_each_run_when_configured_to()
+  {
+    $sync_with_log = new StockSyncer($_ENV["PORTWEST_URL"], 1, 2, [
+      "log" => true,
+    ]);
+
+    $sync_with_log->start_sync();
+
+    $log = $sync_with_log->get_log();
+
+    $this->assertNotEmpty($log);
   }
 
   public function test_sync_get_token()
@@ -178,5 +191,20 @@ class StockSyncerTest extends WP_UnitTestCase
     $stockAfterSync = get_post_meta($product_id, "_stock", true);
 
     $this->assertEquals($data["stock"], $stockAfterSync);
+  }
+
+  public function test_sync_creates_log_file_if_one_doesnt_already_exist()
+  {
+    $sync_with_log = new StockSyncer($_ENV["PORTWEST_URL"], 1, 2, [
+      "log" => true,
+    ]);
+
+    $sync_with_log->start_sync();
+
+    $log_file = $sync_with_log->read_log();
+
+    $log_text = $sync_with_log->get_log();
+
+    $this->assertStringContainsString($log_text, $log_file);
   }
 }
