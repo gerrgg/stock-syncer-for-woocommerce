@@ -38,7 +38,7 @@ class StockSyncerTest extends WP_UnitTestCase
     global $token;
 
     // setup url
-    $url = $_ENV["API_URL"] . date("Y-m-d");
+    $url = $_ENV["HH_API_URL"] . date("Y-m-d");
 
     $GLOBALS["sync"] = new StockSyncer($url, 1, 2, ["token" => $token]);
 

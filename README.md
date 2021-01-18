@@ -39,10 +39,24 @@ $sync->start_sync();
 ### Make request with authentication
 
 ```
-$url = $_ENV["API_URL"] . date("Y-m-d");
-$config = ["token" => $_ENV["API_KEY"], "file_type" => "xlsx"];
+// login to remote API, send the raw POST request body as string
+$token = ssfwc_get_login_token(
+  $_ENV["HH_LOGIN_URL"],
+  sprintf(
+    "user[username]=%s&user[password]=%s",
+    $_ENV["HH_USERNAME"],
+    $_ENV["HH_PASSWORD"]
+  )
+);
 
-$sync = new StockSyncer($url, 1, 2, $config);
+// setup the endpoint
+$url = $_ENV["HH_API_URL"] . date("Y-m-d");
+
+// helly hansen requires api key and exports file as .xlsx
+$sync = new StockSyncer($url, 9, 13, [
+  "token" => $token,
+  "file_type" => "xlsx",
+]);
 
 // do the sync
 $sync->start_sync();
