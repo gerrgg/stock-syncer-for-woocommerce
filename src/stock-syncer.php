@@ -235,6 +235,7 @@ class StockSyncer
     $path = dirname(__DIR__) . "/logs/" . date("Ymd") . ".txt";
 
     if (!file_exists($path)) {
+      var_dump(is_dir($path));
       touch($path);
       $fp = fopen($path, "w");
       fwrite($fp, "Start logging: \n\n");

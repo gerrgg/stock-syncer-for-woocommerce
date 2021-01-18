@@ -11,6 +11,17 @@ require_once __DIR__ . "/test-helper.php";
 
 require_once __DIR__ . "/../../woocommerce/woocommerce.php";
 
+$GLOBALS["helper"] = new TestHelper();
+
+$GLOBALS["token"] = $GLOBALS["helper"]->get_login_token(
+  $_ENV["HH_LOGIN_URL"],
+  sprintf(
+    "user[username]=%s&user[password]=%s",
+    $_ENV["HH_USERNAME"],
+    $_ENV["HH_PASSWORD"]
+  )
+);
+
 /**
  * Sample test case.
  */
@@ -23,15 +34,13 @@ class StockSyncerTest extends WP_UnitTestCase
     // for testing
     putenv("WP_ENVIRONMENT_TYPE=local");
 
+    global $helper;
+    global $token;
+
     // setup url
     $url = $_ENV["API_URL"] . date("Y-m-d");
-    $config = ["token" => $_ENV["API_KEY"]];
 
-    // set globals
-    $GLOBALS["sync"] = new StockSyncer($url, 1, 2, $config);
-    $GLOBALS["helper"] = new TestHelper();
-
-    global $helper;
+    $GLOBALS["sync"] = new StockSyncer($url, 1, 2, ["token" => $token]);
 
     $GLOBALS["product_id"] = $helper->create_product([
       "post_title" => "Test regex",
@@ -39,6 +48,22 @@ class StockSyncerTest extends WP_UnitTestCase
       "post_type" => "product",
       "meta_input" => ["_sku" => "70030_200-2XL", "_stock" => 50],
     ]);
+  }
+
+  public function test_sync_can_login_to_api()
+  {
+    global $helper;
+
+    $token = $helper->get_login_token(
+      $_ENV["HH_LOGIN_URL"],
+      sprintf(
+        "user[username]=%s&user[password]=%s",
+        $_ENV["HH_USERNAME"],
+        $_ENV["HH_PASSWORD"]
+      )
+    );
+
+    $this->assertNotEmpty($token);
   }
 
   public function test_sync_logs_each_run_when_configured_to()
@@ -57,8 +82,9 @@ class StockSyncerTest extends WP_UnitTestCase
   public function test_sync_get_token()
   {
     global $sync;
+    global $token;
 
-    $this->assertStringContainsString($_ENV["API_KEY"], $sync->get_token());
+    $this->assertStringContainsString($token, $sync->get_token());
   }
 
   public function test_sync_uses_test_data_during_tests()
