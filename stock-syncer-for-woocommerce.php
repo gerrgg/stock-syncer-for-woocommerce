@@ -66,14 +66,16 @@ function ssfwc_portwest_sync_exec()
 function ssfwc_helly_hansen_sync_exec()
 {
   // login to remote API, send the raw POST request body as string
-  $token = ssfwc_get_login_token(
-    $_ENV["HH_LOGIN_URL"],
-    sprintf(
-      "user[username]=%s&user[password]=%s",
-      $_ENV["HH_USERNAME"],
-      $_ENV["HH_PASSWORD"]
-    )
-  );
+  $token =
+    "remember_user_token=" .
+    ssfwc_get_login_token(
+      $_ENV["HH_LOGIN_URL"],
+      sprintf(
+        "user[username]=%s&user[password]=%s",
+        $_ENV["HH_USERNAME"],
+        $_ENV["HH_PASSWORD"]
+      )
+    );
 
   // add todays date to endpoint
   $url = $_ENV["HH_API_URL"] . date("Y-m-d");

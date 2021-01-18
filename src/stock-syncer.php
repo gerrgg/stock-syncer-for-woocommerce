@@ -1,5 +1,7 @@
 <?php
 
+define("LOG_FILE_DIR", dirname(__DIR__) . "/logs");
+
 class StockSyncer
 {
   // get URL from params
@@ -7,13 +9,14 @@ class StockSyncer
   private $sku_column;
   private $stock_column;
 
-  private $log;
+  private $log = "";
 
   // Set defaults
   private $defaults = [
     "token" => null,
     "file_type" => "xlsx",
     "log" => false,
+    "test_mode" => false,
   ];
 
   // Populate config with passed config array and fill in missing details with defaults
@@ -40,10 +43,6 @@ class StockSyncer
     // configure options and fill in missing details with defaults
     $this->configure($config);
 
-    if ($this->config["log"]) {
-      $this->log = $this->read_log();
-    }
-
     // sets where the datafile is we want to use based on environment variable
     $this->get_file_location();
 
@@ -66,6 +65,7 @@ class StockSyncer
 
   public function start_sync()
   {
+    $log = "";
     $row_count = $this->csv->getHighestRow();
 
     for ($i = 2; $i <= $row_count; $i++) {
@@ -75,13 +75,13 @@ class StockSyncer
         $id = $this->get_product_id_from_sku($data["sku"]);
 
         if (false !== $data) {
-          $this->update_stock($id, $data["stock"], $data["sku"]);
+          $log .= $this->update_stock($id, $data["stock"], $data["sku"]);
         }
       }
     }
 
     if ($this->config["log"]) {
-      $this->write_to_log_file();
+      $this->write_to_log_file($log);
     }
   }
 
@@ -92,6 +92,7 @@ class StockSyncer
   public function set_CSV()
   {
     if ($this->data_is_old()) {
+      var_dump("data is old");
       $file = $this->get_remote_file();
       $this->save_to_file($file);
     }
@@ -149,6 +150,9 @@ class StockSyncer
     if (file_exists($this->csv_location)) {
       return time() - filemtime($this->csv_location) > 60 * 60 * 24;
     }
+
+    // if doesnt exist, return true
+    return true;
   }
 
   /**
@@ -212,10 +216,6 @@ class StockSyncer
       return;
     }
 
-    if ($this->config["log"]) {
-      $this->log .= sprintf(" - %s stock updated to %s\n", $sku, $stock);
-    }
-
     // set to manage stock
     update_post_meta($id, "_manage_stock", "yes");
 
@@ -228,42 +228,44 @@ class StockSyncer
       "_stock_status",
       $stock > 0 ? "instock" : "outofstock"
     );
+
+    return sprintf(" - %s stock updated to %s\n", $sku, $stock);
   }
 
-  public function read_log()
+  public function get_log_file_path()
   {
-    $path = dirname(__DIR__) . "/logs/" . date("Ymd") . ".txt";
+    return LOG_FILE_DIR .
+      "/" .
+      date("Ymd") .
+      "-" .
+      getenv("WP_ENVIRONMENT_TYPE") .
+      ".txt";
+  }
 
-    if (!file_exists($path)) {
-      var_dump(is_dir($path));
-      touch($path);
-      $fp = fopen($path, "w");
-      fwrite($fp, "Start logging: \n\n");
-      fclose($fp);
+  public function write_to_log_file($log)
+  {
+    $path = $this->get_log_file_path();
+
+    // make dir if not exists
+    if (!is_dir(LOG_FILE_DIR)) {
+      mkdir(LOG_FILE_DIR);
     }
 
-    $file = fopen($path, "r");
+    if (!file_exists($path)) {
+      // make file
+      touch($path);
 
-    $text = fread($file, filesize($path));
+      // open to write
+      $fp = fopen($path, "w");
+    } else {
+      // open to append
+      $fp = fopen($path, "a");
+    }
 
-    fclose($file);
+    if (!empty($log)) {
+      fwrite($fp, time() . "\n" . $log . "\n");
+    }
 
-    return $text;
-  }
-
-  public function write_to_log_file()
-  {
-    $path = dirname(__DIR__) . "/logs/" . date("Ymd") . ".txt";
-
-    $file = fopen($path, "w");
-    $todays_log = $this->get_log();
-
-    fwrite($file, $todays_log);
-    fclose($file);
-  }
-
-  public function get_log()
-  {
-    return "\n" . $this->log . "\n";
+    fclose($fp);
   }
 }

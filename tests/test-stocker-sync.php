@@ -13,14 +13,16 @@ require_once __DIR__ . "/../../woocommerce/woocommerce.php";
 
 $GLOBALS["helper"] = new TestHelper();
 
-$GLOBALS["token"] = $GLOBALS["helper"]->get_login_token(
-  $_ENV["HH_LOGIN_URL"],
-  sprintf(
-    "user[username]=%s&user[password]=%s",
-    $_ENV["HH_USERNAME"],
-    $_ENV["HH_PASSWORD"]
-  )
-);
+$GLOBALS["token"] =
+  "remember_user_token=" .
+  $GLOBALS["helper"]->get_login_token(
+    $_ENV["HH_LOGIN_URL"],
+    sprintf(
+      "user[username]=%s&user[password]=%s",
+      $_ENV["HH_USERNAME"],
+      $_ENV["HH_PASSWORD"]
+    )
+  );
 
 /**
  * Sample test case.
@@ -66,25 +68,15 @@ class StockSyncerTest extends WP_UnitTestCase
     $this->assertNotEmpty($token);
   }
 
-  public function test_sync_logs_each_run_when_configured_to()
-  {
-    $sync_with_log = new StockSyncer($_ENV["PORTWEST_URL"], 1, 2, [
-      "log" => true,
-    ]);
-
-    $sync_with_log->start_sync();
-
-    $log = $sync_with_log->get_log();
-
-    $this->assertNotEmpty($log);
-  }
-
-  public function test_sync_get_token()
+  public function test_sync_helly_token_has_remember_user_key()
   {
     global $sync;
     global $token;
 
-    $this->assertStringContainsString($token, $sync->get_token());
+    $this->assertStringContainsString(
+      "remember_user_token",
+      $sync->get_token()
+    );
   }
 
   public function test_sync_uses_test_data_during_tests()
@@ -96,7 +88,7 @@ class StockSyncerTest extends WP_UnitTestCase
     $this->assertStringContainsString("tests/test-data.xlsx", $file_location);
   }
 
-  public function test_sync_uses_test_data_during_production()
+  public function test_sync_uses_real_data_during_production()
   {
     global $sync;
 
@@ -107,6 +99,65 @@ class StockSyncerTest extends WP_UnitTestCase
     $file_location = $sync->get_file_location();
 
     $this->assertStringContainsString("/data.xlsx", $file_location);
+  }
+
+  public function test_sync_log_file_is_created_in_test_mode()
+  {
+    global $token;
+
+    // add todays date to endpoint
+    $url = $_ENV["HH_API_URL"] . date("Y-m-d");
+
+    // helly hansen requires api key and exports file as .xlsx
+    $sync = new StockSyncer($url, 9, 13, [
+      "token" => $token,
+      "file_type" => "xlsx",
+    ]);
+
+    $this->assertTrue(file_exists(LOG_FILE_DIR));
+  }
+
+  public function test_sync_log_file_is_created_in_production_mode()
+  {
+    global $helper;
+
+    putenv("WP_ENVIRONMENT_TYPE=production");
+
+    global $token;
+
+    $url = $_ENV["HH_API_URL"] . date("Y-m-d");
+
+    $sync = new StockSyncer($url, 9, 13, [
+      "token" => $token,
+      "file_type" => "xlsx",
+      "log" => true,
+    ]);
+
+    $path = $sync->get_log_file_path();
+
+    $this->assertStringContainsString("production", $path);
+  }
+
+  public function test_sync_works_with_helly_hansen_in_production()
+  {
+    global $sync;
+    global $token;
+
+    putenv("WP_ENVIRONMENT_TYPE=production");
+
+    $url = $_ENV["HH_API_URL"] . date("Y-m-d");
+
+    $sync = new StockSyncer($url, 9, 13, [
+      "token" => $token,
+      "file_type" => "xlsx",
+    ]);
+
+    $csv_location = $sync->get_file_location();
+
+    $fp = fopen($csv_location, "r");
+    $data = fread($fp, filesize($csv_location));
+
+    $this->assertFalse($data === "ActionController::UnknownFormat");
   }
 
   public function test_sync_can_get_remote_file_with_token()
@@ -187,50 +238,5 @@ class StockSyncerTest extends WP_UnitTestCase
     $stockAfterSync = get_post_meta($product_id, "_stock", true);
 
     $this->assertEquals($data["stock"], $stockAfterSync);
-  }
-
-  public function test_sync_works_with_helly_hansen_in_production()
-  {
-    putenv("WP_ENVIRONMENT_TYPE=production");
-
-    global $helper;
-
-    global $sync;
-
-    $product_id = $helper->create_product([
-      "post_title" => "Helly Hansen product",
-      "post_content" => "somestuff",
-      "post_type" => "product",
-      "meta_input" => [
-        "_sku" => "70030_200-S",
-        "_stock" => 900,
-      ],
-    ]);
-
-    // get stock from csv file
-    $data = $sync->get_sku_and_stock_from_csv(3);
-
-    $this->assertEquals($data["sku"], "70030_200-S");
-
-    $sync->start_sync();
-
-    $stockAfterSync = get_post_meta($product_id, "_stock", true);
-
-    $this->assertEquals($data["stock"], $stockAfterSync);
-  }
-
-  public function test_sync_creates_log_file_if_one_doesnt_already_exist()
-  {
-    $sync_with_log = new StockSyncer($_ENV["PORTWEST_URL"], 1, 2, [
-      "log" => true,
-    ]);
-
-    $sync_with_log->start_sync();
-
-    $log_file = $sync_with_log->read_log();
-
-    $log_text = $sync_with_log->get_log();
-
-    $this->assertStringContainsString($log_text, $log_file);
   }
 }
