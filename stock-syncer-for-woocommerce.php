@@ -4,7 +4,7 @@
  * Plugin Name:       Stock Syncer for Woocommerce
  * Plugin URI:        https://example.com/plugins/stock-syncer-for-woocommerce/
  * Description:       A simple dashboard widget for updating product stock on mass with nothing but a SKU and a STOCK.
- * Version:           0.1
+ * Version:           1.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            gregbast1994
