@@ -91,15 +91,25 @@ class StockSyncer
    */
   public function set_CSV()
   {
-    if ($this->data_is_old()) {
-      var_dump("data is old");
-      $file = $this->get_remote_file();
-      $this->save_to_file($file);
-    }
+    // this gets a fresh csv file if not in testing mode
+    $this->get_CSV();
 
     $csv = \PhpOffice\PhpSpreadsheet\IOFactory::load($this->csv_location);
 
     $this->csv = $csv->getActiveSheet();
+  }
+
+  private function get_CSV()
+  {
+    // if not local (testing) then replace csv with new file.
+    if ("local" !== getenv("WP_ENVIRONMENT_TYPE")) {
+      if (file_exists($this->csv_location)) {
+        unlink($this->csv_location);
+      }
+
+      $file = $this->get_remote_file();
+      $this->save_to_file($file);
+    }
   }
 
   public function get_token()
