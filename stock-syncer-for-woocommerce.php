@@ -17,6 +17,7 @@
 
 // Load Dependancies
 require_once __DIR__ . "/vendor/autoload.php";
+require_once __DIR__ . "/src/widget.php";
 
 // Load Environment variables
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
@@ -41,6 +42,15 @@ if (
   add_action("ssfwc_portwest_sync_hook", "ssfwc_portwest_sync_exec");
   add_action("ssfwc_helly_hansen_sync_hook", "ssfwc_helly_hansen_sync_exec");
 
+  /**
+   * Admin Post for Manual execution
+   */
+  add_action("admin_post_ssfwc_run_portwest", "ssfwc_portwest_sync_exec");
+  add_action(
+    "admin_post_ssfwc_run_helly_hansen",
+    "ssfwc_helly_hansen_sync_exec"
+  );
+
   if (!wp_next_scheduled("ssfwc_portwest_sync_hook")) {
     wp_schedule_event(time(), "twicedaily", "ssfwc_portwest_sync_hook");
   }
@@ -55,7 +65,10 @@ if (
  */
 function ssfwc_portwest_sync_exec()
 {
-  $sync = new StockSyncer($_ENV["PORTWEST_URL"], 2, 9, ["file_type" => "csv"]);
+  $sync = new StockSyncer($_ENV["PORTWEST_URL"], 2, 9, [
+    "file_type" => "csv",
+    "log" => true,
+  ]);
 
   $sync->start_sync();
 }
@@ -84,6 +97,7 @@ function ssfwc_helly_hansen_sync_exec()
   $sync = new StockSyncer($url, 9, 13, [
     "token" => $token,
     "file_type" => "xlsx",
+    "log" => true,
   ]);
 
   $sync->start_sync();

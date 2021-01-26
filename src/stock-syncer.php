@@ -9,7 +9,7 @@ class StockSyncer
   private $sku_column;
   private $stock_column;
 
-  private $log = "";
+  public $log = "";
 
   // Set defaults
   private $defaults = [
@@ -74,7 +74,7 @@ class StockSyncer
       if ($data["sku"]) {
         $id = $this->get_product_id_from_sku($data["sku"]);
 
-        if (false !== $data) {
+        if (false !== $data && is_int($data["stock"])) {
           $log .= $this->update_stock($id, $data["stock"], $data["sku"]);
         }
       }
