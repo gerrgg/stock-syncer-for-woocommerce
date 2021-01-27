@@ -81,6 +81,7 @@ class StockSyncer
     }
 
     if ($this->config["log"]) {
+      $this->log = $log;
       $this->write_to_log_file($log);
     }
   }

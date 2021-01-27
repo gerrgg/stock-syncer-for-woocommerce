@@ -45,11 +45,8 @@ if (
   /**
    * Admin Post for Manual execution
    */
-  add_action("admin_post_ssfwc_run_portwest", "ssfwc_portwest_sync_exec");
-  add_action(
-    "admin_post_ssfwc_run_helly_hansen",
-    "ssfwc_helly_hansen_sync_exec"
-  );
+  add_action("wp_ajax_ssfwc_run_portwest", "ssfwc_portwest_sync_exec");
+  add_action("wp_ajax_ssfwc_run_helly_hansen", "ssfwc_helly_hansen_sync_exec");
 
   if (!wp_next_scheduled("ssfwc_portwest_sync_hook")) {
     wp_schedule_event(time(), "twicedaily", "ssfwc_portwest_sync_hook");
@@ -71,6 +68,10 @@ function ssfwc_portwest_sync_exec()
   ]);
 
   $sync->start_sync();
+
+  echo $sync->log;
+
+  wp_die();
 }
 
 /**
@@ -101,6 +102,10 @@ function ssfwc_helly_hansen_sync_exec()
   ]);
 
   $sync->start_sync();
+
+  echo $sync->log;
+
+  wp_die();
 }
 
 /**
