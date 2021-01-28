@@ -1,6 +1,8 @@
-# Stock Syncer for Woocommerce
+# 🤑 Stock Syncer for Woocommerce 😮‍💨
 
-This plugin allows developers to quickly sync store inventory with remote or local vendor files.
+<img src="./demo.gif">
+
+This plugin allows developers to quickly sync store inventory with remote or local vendor files. EZ 🔥🔥
 
 ## PARAMETERS
 
