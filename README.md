@@ -16,6 +16,8 @@ This plugin allows developers to quickly sync store inventory with remote or loc
 
   - **token** - optional security cookie to include when making the request to remote file.
   - **file_ext** - Indicates what the incoming file's extension should be.
+  - **test_mode** - defaults to `false`, if true use sample data.
+  - **log** - defaults to `false`, if true record what changes in public variable
 
 ## USAGE
 
