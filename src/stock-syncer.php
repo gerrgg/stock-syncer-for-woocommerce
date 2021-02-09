@@ -71,18 +71,22 @@ class StockSyncer
     for ($i = 2; $i <= $row_count; $i++) {
       $data = $this->get_sku_and_stock_from_csv($i);
 
-      if ($data["sku"]) {
-        $id = $this->get_product_id_from_sku($data["sku"]);
+      $sku =
+        gettype($data["sku"]) !== "string"
+          ? $data["sku"]->getPlainText()
+          : $data["sku"];
+
+      if ($sku) {
+        $id = $this->get_product_id_from_sku($sku);
 
         if (false !== $data && is_int($data["stock"])) {
-          $log .= $this->update_stock($id, $data["stock"], $data["sku"]);
+          $log .= $this->update_stock($id, $data["stock"], $sku);
         }
       }
     }
 
     if ($this->config["log"]) {
       $this->log = $log;
-      $this->write_to_log_file($log);
     }
   }
 
